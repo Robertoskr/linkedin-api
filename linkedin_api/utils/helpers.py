@@ -2,6 +2,21 @@ import random
 import base64
 from typing import Dict, List
 
+def get_from_dict_or(d, key, default): 
+    return d.get(key) or default
+
+def get_from_list_or(l, index, default):
+    if len(l) > index:
+        return l[index]
+    return default
+
+def get_from_dict_path_or(d, path): 
+    for key, default in path: 
+        if isinstance(key, int):
+            d = get_from_list_or(d, key, default)
+        else: 
+            d = get_from_dict_or(d, key, default)
+    return d
 
 def get_id_from_urn(urn: str):
     """

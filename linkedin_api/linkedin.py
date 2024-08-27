@@ -9,10 +9,12 @@ import uuid
 from operator import itemgetter
 from time import sleep
 from urllib.parse import urlencode
-from typing import Dict, Union, Optional, List, Literal
+from typing import Dict, Union, Optional, List, Literal, Tuple
 
 from linkedin_api.client import Client
 from linkedin_api.utils.helpers import (
+    get_from_dict_or,
+    get_from_dict_path_or,
     get_id_from_urn,
     get_urn_from_raw_update,
     get_list_posts_sorted_without_promoted,
@@ -199,7 +201,13 @@ class Linkedin(object):
             data["paging"] = res.json()["paging"]
         return data["elements"]
 
-    def search(self, params: Dict, limit=-1, offset=0) -> List:
+    def search(
+        self, 
+        params: Dict, 
+        flagship_search_intent: str = "SEARCH_SRP",
+        limit=-1, 
+        offset=0,
+    ) -> List:
         """Perform a LinkedIn search.
 
         :param params: Search parameters (see code)
@@ -239,15 +247,15 @@ class Linkedin(object):
                 else ""
             )
 
-            res = self._fetch(
-                f"/graphql?variables=(start:{default_params['start']},origin:{default_params['origin']},"
-                f"query:("
-                f"{keywords}"
-                f"flagshipSearchIntent:SEARCH_SRP,"
-                f"queryParameters:{default_params['filters']},"
-                f"includeFiltersInResponse:false))&queryId=voyagerSearchDashClusters"
-                f".b0928897b71bd00a5a7291755dcd64f0"
-            )
+            url = f"/graphql?variables=(start:{default_params['start']},origin:{default_params['origin']}," \
+                    f"query:(" \
+                    f"{keywords}" \
+                    f"flagshipSearchIntent:{flagship_search_intent}," \
+                    f"queryParameters:{default_params['filters']}," \
+                    f"includeFiltersInResponse:false))&queryId=voyagerSearchDashClusters" \
+                    f".b0928897b71bd00a5a7291755dcd64f0"
+
+            res = self._fetch(url)
             data = res.json()
 
             data_clusters = data.get("data", []).get("searchDashClustersByAll", [])
@@ -329,8 +337,9 @@ class Linkedin(object):
             Union[Literal["F"], Literal["S"], Literal["O"]]
         ] = None,  # DEPRECATED - use network_depths
         title: Optional[str] = None,  # DEPRECATED - use keyword_title
+        origin: str | None = None,
         **kwargs,
-    ) -> List[Dict]:
+    ) -> List[Tuple[Dict, Dict]]:
         """Perform a LinkedIn search for people.
 
         :param keywords: Keywords to search on
@@ -422,6 +431,9 @@ class Linkedin(object):
 
         params = {"filters": "List({})".format(",".join(filters))}
 
+        if origin: 
+            params["origin"] = origin
+
         if keywords:
             params["keywords"] = keywords
 
@@ -437,6 +449,7 @@ class Linkedin(object):
                 == "OUT_OF_NETWORK"
             ):
                 continue
+
             results.append(
                 {
                     "urn_id": get_id_from_urn(
@@ -448,10 +461,22 @@ class Linkedin(object):
                     "jobtitle": (item.get("primarySubtitle") or {}).get("text", None),
                     "location": (item.get("secondarySubtitle") or {}).get("text", None),
                     "name": (item.get("title") or {}).get("text", None),
+                    "url": (item.get("navigationContext") or {}).get("url", None),
+                    "profile_image_url": get_from_dict_path_or(item, [
+                        ("image", {}),
+                        ("attributes", [{}]),
+                        (0, {}),
+                        ("detailData", {}),
+                        ("nonEntityProfilePicture", {}),
+                        ("vectorImage", {}),
+                        ("artifacts", [{}]),
+                        (0, {}),
+                        ("fileIdentifyingUrlPathSegment", None)
+                    ])
                 }
             )
 
-        return results
+        return list(zip(results, data))
 
     def search_companies(self, keywords: Optional[List[str]] = None, **kwargs) -> List:
         """Perform a LinkedIn search for companies.
