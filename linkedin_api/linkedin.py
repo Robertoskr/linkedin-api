@@ -10,6 +10,7 @@ from operator import itemgetter
 from time import sleep
 from urllib.parse import urlencode
 from typing import Dict, Union, Optional, List, Literal, Tuple
+from requests import Response
 
 from linkedin_api.client import Client
 from linkedin_api.utils.helpers import (
@@ -32,7 +33,7 @@ def default_evade():
     A catch-all method to try and evade suspension from Linkedin.
     Currenly, just delays the request by a random (bounded) time
     """
-    sleep(random.randint(2, 5))  # sleep a random duration to try and evade suspention
+    # sleep(random.randint(2, 5))  # sleep a random duration to try and evade suspention
 
 
 class Linkedin(object):
@@ -1007,6 +1008,26 @@ class Linkedin(object):
             "numViews"
         ]
 
+    def get_connections(
+        self,
+        count: int = 40,
+        q: str = "search",
+        sort: str = "RECENTLY_ADDED"
+    ) -> Response: 
+        """
+        Fetch connections for the currently logged in user.
+        Ordered 
+        """
+        params = {
+            "decorationId": "com.linkedin.voyager.dash.deco.web.mynetwork.ConnectionListWithProfile-16",
+            "count": count,
+            "q": q,
+            "sortType": sort,
+        }
+        url = f"/voyager/api/relationships/dash/connections?{urlencode(params)}"
+        res = self._fetch(url, base_request=True)
+        return res
+
     def get_school(self, public_id):
         """Fetch data about a given LinkedIn school.
 
@@ -1152,8 +1173,7 @@ class Linkedin(object):
         params = {"action": "create"}
 
         if not (conversation_urn_id or recipients):
-            self.logger.debug("Must provide [conversation_urn_id] or [recipients].")
-            return True
+            raise Exception("Must provide [conversation_urn_id] or [recipients].")
 
         message_event = {
             "eventCreate": {
@@ -1178,6 +1198,8 @@ class Linkedin(object):
                 params=params,
                 data=json.dumps(message_event),
             )
+            return res
+
         elif recipients and not conversation_urn_id:
             message_event["recipients"] = recipients
             message_event["subtype"] = "MEMBER_TO_MEMBER"
@@ -1191,7 +1213,7 @@ class Linkedin(object):
                 data=json.dumps(payload),
             )
 
-        return res.status_code != 201
+            return res
 
     def mark_conversation_as_seen(self, conversation_urn_id: str):
         """Send 'seen' to a given conversation.
@@ -1297,14 +1319,9 @@ class Linkedin(object):
         :param profile_urn: member URN for the given LinkedIn profile
         :type profile_urn: str, optional
 
-        :return: Error state. True if error occurred
-        :rtype: boolean
+        :return: The response object
+        :rtype: Response
         """
-
-        # Validating message length (max size is 300 characters)
-        if len(message) > 300:
-            self.logger.info("Message too long. Max size is 300 characters")
-            return False
 
         if not profile_urn:
             profile_urn_string = self.get_profile(public_id=profile_public_id)[
@@ -1331,8 +1348,7 @@ class Linkedin(object):
             data=json.dumps(payload),
             headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
-
-        return res.status_code != 201
+        return res
 
     def remove_connection(self, public_profile_id: str):
         """Remove a given profile as a connection.
