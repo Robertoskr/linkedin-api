@@ -88,7 +88,7 @@ class Linkedin(object):
         evade()
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
-        return self.client.session.get(url, **kwargs)
+        return self.client.session.get(url, allow_redirects=False, **kwargs)
 
     def _cookies(self):
         """Return client cookies"""
@@ -259,6 +259,7 @@ class Linkedin(object):
             res = self._fetch(url)
             data = res.json()
 
+            print(data)
             data_clusters = data.get("data", []).get("searchDashClustersByAll", [])
 
             if not data_clusters:
@@ -1136,10 +1137,9 @@ class Linkedin(object):
         params = {"keyVersion": "LEGACY_INBOX"}
 
         res = self._fetch(f"/messaging/conversations", params=params)
+        return res
 
-        return res.json()
-
-    def get_conversation(self, conversation_urn_id: str):
+    def get_conversation(self, conversation_urn_id: str, start=0):
         """Fetch data about a given conversation.
 
         :param conversation_urn_id: LinkedIn URN ID for a conversation
@@ -1148,9 +1148,11 @@ class Linkedin(object):
         :return: Conversation data
         :rtype: dict
         """
-        res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
-
-        return res.json()
+        params = None
+        if start:
+            params = {"start": start}
+        res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events", params=params)
+        return res
 
     def send_message(
         self,
