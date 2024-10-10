@@ -88,6 +88,7 @@ class Linkedin(object):
         evade()
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
+        print("URL", url)
         return self.client.session.get(url, allow_redirects=False, **kwargs)
 
     def _cookies(self):
@@ -1127,6 +1128,11 @@ class Linkedin(object):
         item["id"] = get_id_from_urn(item["entityUrn"])
 
         return item
+
+    def get_conversations_v2(self, profile_urn_id: str): 
+        url = f"/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.e75894f1094ac55cbd53d2482301efdc&variables=(query:(predicateUnions:List((conversationCategoryPredicate:(category:INBOX)))),count:20,mailboxUrn:urn%3Ali%3Afsd_profile%3A{profile_urn_id})"
+
+        return self._fetch(url, base_request=True)
 
     def get_conversations(self):
         """Fetch list of conversations the user is in.
