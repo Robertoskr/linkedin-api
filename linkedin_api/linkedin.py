@@ -157,26 +157,28 @@ class Linkedin(object):
             data["paging"] = res.json()["paging"]
         return data["elements"]
 
-    def get_post_likes(self, post_urn: str, count: int, start: int) -> Response: 
+    def get_post_likes(self, post_urn: str, count: int, start: int, post_id_identifier: str = "threadUrn:urn%3Ali%3AugcPost%3A") -> Response: 
         """
         https://www.linkedin.com/voyager/api/graphql?variables=(count:10,start:4909,threadUrn:urn%3Ali%3Aactivity%3A7251859258693025792)&queryId=voyagerSocialDashReactions.cab051ffdf47c41130cdd414e0097402
         """
 
         url = (
-            f"/voyager/api/graphql?queryId=voyagerSocialDashReactions.cab051ffdf47c41130cdd414e0097402&variables=(count:{count},start:{start},threadUrn:urn%3Ali%3AugcPost%3A{post_urn})"
+            f"/voyager/api/graphql?queryId=voyagerSocialDashReactions.cab051ffdf47c41130cdd414e0097402&variables=(count:{count},start:{start},{post_id_identifier}{post_urn})"
         )
 
         return self._fetch(url, base_request=True)
 
-    def get_post_comments_v2(self, post_urn: str, count: int, start: int) -> Response: 
+    def get_post_comments_v2(self, post_urn: str, count: int, start: int, post_id_identifier: str = "urn%3Ali%3AugcPost%3A") -> Response: 
         """
 https://www.linkedin.com/voyager/api/graphql?variables=(count:5,numReplies:0,socialDetailUrn:urn%3Ali%3Afsd_socialDetail%3A%28urn%3Ali%3AugcPost%3A7252015389100912645%2Curn%3Ali%3AugcPost%3A7252015389100912645%2Curn%3Ali%3AhighlightedReply%3A-%29,sortOrder:RELEVANCE,start:10)&queryId=voyagerSocialDashComments.9058ba015b2c03f589554557691bba87
+
+        (count:10,numReplies:0,socialDetailUrn:urn:li:fsd_socialDetail:(urn:li:activity:7251585047818899456,urn:li:activity:7251585047818899456,urn:li:highlightedReply:-),sortOrder:REVERSE_CHRONOLOGICAL,start:0)
         """
 
         queryId = "voyagerSocialDashComments.9058ba015b2c03f589554557691bba87"
         pagination_variables = f"count:{count},numReplies:0,start:{start}" 
         sort_order = "sortOrder:REVERSE_CHRONOLOGICAL"
-        post_variables = f"socialDetailUrn:urn%3Ali%3Afsd_socialDetail%3A%28urn%3Ali%3AugcPost%3A{post_urn}%2Curn%3Ali%3AugcPost%3A{post_urn}%2Curn%3Ali%3AhighlightedReply%3A-%29"
+        post_variables = f"socialDetailUrn:urn%3Ali%3Afsd_socialDetail%3A%28{post_id_identifier}{post_urn}%2C{post_id_identifier}{post_urn}%2Curn%3Ali%3AhighlightedReply%3A-%29"
         url = (
             f"/voyager/api/graphql?variables=({pagination_variables},{sort_order},{post_variables})&queryId={queryId}"
         )
