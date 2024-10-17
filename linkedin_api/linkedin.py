@@ -781,6 +781,13 @@ https://www.linkedin.com/voyager/api/graphql?variables=(count:5,numReplies:0,soc
 
         return skills
 
+    def get_profile_response(self, public_id: Optional[str] = None, urn_id: Optional[str] = None) -> Response:
+        # NOTE this still works for now, but will probably eventually have to be converted to
+        # https://www.linkedin.com/voyager/api/identity/profiles/ACoAAAKT9JQBsH7LwKaE9Myay9WcX8OVGuDq9Uw
+        res = self._fetch(f"/identity/profiles/{public_id or urn_id}/profileView")
+
+        return res
+
     def get_profile(
         self, public_id: Optional[str] = None, urn_id: Optional[str] = None
     ) -> Dict:
@@ -794,11 +801,9 @@ https://www.linkedin.com/voyager/api/graphql?variables=(count:5,numReplies:0,soc
         :return: Profile data
         :rtype: dict
         """
-        # NOTE this still works for now, but will probably eventually have to be converted to
-        # https://www.linkedin.com/voyager/api/identity/profiles/ACoAAAKT9JQBsH7LwKaE9Myay9WcX8OVGuDq9Uw
-        res = self._fetch(f"/identity/profiles/{public_id or urn_id}/profileView")
+        response = self.get_profile_response(public_id=public_id, urn_id=urn_id)
+        data = response.json()
 
-        data = res.json()
         if data and "status" in data and data["status"] != 200:
             self.logger.info("request failed: {}".format(data["message"]))
             return {}
