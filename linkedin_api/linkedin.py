@@ -1392,6 +1392,34 @@ https://www.linkedin.com/voyager/api/graphql?variables=(count:5,numReplies:0,soc
         )
         return res
 
+    def add_connection_v2(self, profile_public_id: str, message="", profile_urn=None): 
+        if not profile_urn:
+            profile_urn_string = self.get_profile(public_id=profile_public_id)[
+                "profile_urn"
+            ]
+            # Returns string of the form 'urn:li:fs_miniProfile:ACoAACX1hoMBvWqTY21JGe0z91mnmjmLy9Wen4w'
+            # We extract the last part of the string
+            profile_urn = profile_urn_string.split(":")[-1]
+
+        url = f"/voyager/api/voyagerRelationshipsDashMemberRelationships?action=verifyQuotaAndCreateV2&decorationId=com.linkedin.voyager.dash.deco.relationships.InvitationCreationResultWithInvitee-2"
+
+        payload = {
+            "invitee": {
+                "inviteeUnion": {
+                    "memberProfile": f"urn:li:fsd_profile:{profile_urn}"
+                }
+            }
+        }
+
+        res = self._post(
+            url,
+            data=json.dumps(payload),
+            headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+            base_request=True,
+        )
+        return res
+
+
     def remove_connection(self, public_profile_id: str):
         """Remove a given profile as a connection.
 
