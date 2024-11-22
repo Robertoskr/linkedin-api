@@ -1419,6 +1419,18 @@ https://www.linkedin.com/voyager/api/graphql?variables=(count:5,numReplies:0,soc
         )
         return res
 
+    def remove_invitation(self, invitation_urn_id: str, invitation_type: str = 'CONNECTION'): 
+        url = f"/voyager/api/voyagerRelationshipsDashInvitations/{invitation_urn_id}?action=withdraw"
+        payload = {
+            "invitationType": invitation_type
+        }
+        response = self._post(
+            url, 
+            data=json.dumps(payload),
+            headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+            base_request=True,
+        )
+        return response
 
     def remove_connection(self, public_profile_id: str):
         """Remove a given profile as a connection.
